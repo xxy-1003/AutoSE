@@ -113,7 +113,8 @@ with st.sidebar:
     )
     
     if st.button("Load Example", use_container_width=True):
-        st.session_state.example_to_load = examples[selected_example]
+        # Store the example text and trigger processing
+        st.session_state.example_text = examples[selected_example]
         st.rerun()
     
     st.markdown("---")
@@ -147,11 +148,14 @@ with st.sidebar:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Check if we need to load an example
-if hasattr(st.session_state, 'example_to_load'):
-    # Add the example to chat input
-    st.chat_input("Describe your requirement...", value=st.session_state.example_to_load)
-    del st.session_state.example_to_load
+# Check if we have an example text to process
+if hasattr(st.session_state, 'example_text'):
+    # Use the example text as the prompt
+    prompt = st.session_state.example_text
+    del st.session_state.example_text
+else:
+    # Normal chat input
+    prompt = st.chat_input("Describe your requirement (e.g., 'Deploy a 100-camera AI security system')...", key="main_chat_input")
 
 # Display chat history
 for message in st.session_state.messages:
@@ -265,8 +269,8 @@ for message in st.session_state.messages:
         if "timestamp" in message:
             st.caption(f"*{message['timestamp']}*")
 
-# Chat input
-if prompt := st.chat_input("Describe your requirement (e.g., 'Deploy a 100-camera AI security system')..."):
+# Process the prompt if we have one
+if prompt:
     # Add user message to history
     st.session_state.messages.append({
         "role": "user",

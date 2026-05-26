@@ -1,0 +1,58 @@
+{
+  "requirement": "10-camera security system for small office",
+  "requirements": {
+    "device_count": 10,
+    "gpu_required": false,
+    "estimated_power_w": 100,
+    "network_ports": 1
+  },
+  "products": [
+    {
+      "name": "AI Server X2",
+      "power_w": 1500,
+      "gpu_count": 8,
+      "price": 28000,
+      "max_cameras": 120,
+      "port_count": 0,
+      "capacity_w": 0
+    },
+    {
+      "name": "AI Server X1",
+      "power_w": 800,
+      "gpu_count": 4,
+      "price": 15000,
+      "max_cameras": 50,
+      "port_count": 0,
+      "capacity_w": 0
+    },
+    {
+      "name": "Edge Node",
+      "power_w": 150,
+      "gpu_count": 1,
+      "price": 4000,
+      "max_cameras": 10,
+      "port_count": 0,
+      "capacity_w": 0
+    },
+    {
+      "name": "Switch 48P",
+      "power_w": 400,
+      "gpu_count": 0,
+      "price": 1500,
+      "max_cameras": 0,
+      "port_count": 48,
+      "capacity_w": 0
+    }
+  ],
+  "validation": {
+    "power_check": "PASS",
+    "power_warning": null,
+    "network_check": "PASS",
+    "gpu_check": "PASS",
+    "warnings": [
+      "Power consumption (2950W) is significant. Consider adding UPS 5000W for power backup."
+    ]
+  },
+  "proposal_preview": "# AutoSE Platform Proposal\n*Generated: 2026-05-26 17:44:03*\n\n## Requirements Summary\n\n- **Device Count**: 10 cameras/devices\n- **GPU Required**: No\n- **Estimated Power**: 100W\n- **Network Ports**: 1 ports\n\n## Recommended Products\n\n### AI Server X2\n\n- **Power Consumption**: 1500W\n- **GPU Count**: 8\n- **Price**: $28,000\n- **Max Cameras Supported**: 120\n\n### AI Server X1\n\n- **Power Consumption**: 800W\n- **GPU Count**: 4\n- **Price**: $15,000\n- **Max Cameras Supported**: 50\n\n### Edge Node\n\n- **Power ...",
+  "timestamp": "2026-05-26T17:44:03.054036"
+}

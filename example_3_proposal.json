@@ -1,0 +1,29 @@
+{
+  "requirement": "200-camera AI surveillance system with redundant power",
+  "requirements": {
+    "device_count": 200,
+    "gpu_required": false,
+    "estimated_power_w": 100,
+    "network_ports": 1
+  },
+  "products": [
+    {
+      "name": "Switch 48P",
+      "power_w": 400,
+      "gpu_count": 0,
+      "price": 1500,
+      "max_cameras": 0,
+      "port_count": 48,
+      "capacity_w": 0
+    }
+  ],
+  "validation": {
+    "power_check": "PASS",
+    "power_warning": null,
+    "network_check": "PASS",
+    "gpu_check": "PASS",
+    "warnings": []
+  },
+  "proposal_preview": "# AutoSE Platform Proposal\n*Generated: 2026-05-26 17:44:04*\n\n## Requirements Summary\n\n- **Device Count**: 200 cameras/devices\n- **GPU Required**: No\n- **Estimated Power**: 100W\n- **Network Ports**: 1 ports\n\n## Recommended Products\n\n### Switch 48P\n\n- **Power Consumption**: 400W\n- **Price**: $1,500\n- **Network Ports**: 48\n\n**Total Estimated Cost**: $1,500\n\n## Validation Results\n\n- **Power Check**: PASS\n- **Network Check**: PASS\n- **GPU Check**: PASS\n\n## Reasoning\n\n### Product Selection\n\n- **Switch...",
+  "timestamp": "2026-05-26T17:44:04.573431"
+}

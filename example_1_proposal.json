@@ -1,0 +1,40 @@
+{
+  "requirement": "Deploy an AI security system supporting 100 cameras with GPU acceleration",
+  "requirements": {
+    "device_count": 100,
+    "gpu_required": true,
+    "estimated_power_w": 100,
+    "network_ports": 1
+  },
+  "products": [
+    {
+      "name": "AI Server X2",
+      "power_w": 1500,
+      "gpu_count": 8,
+      "price": 28000,
+      "max_cameras": 120,
+      "port_count": 0,
+      "capacity_w": 0
+    },
+    {
+      "name": "Switch 48P",
+      "power_w": 400,
+      "gpu_count": 0,
+      "price": 1500,
+      "max_cameras": 0,
+      "port_count": 48,
+      "capacity_w": 0
+    }
+  ],
+  "validation": {
+    "power_check": "PASS",
+    "power_warning": null,
+    "network_check": "PASS",
+    "gpu_check": "PASS",
+    "warnings": [
+      "Power consumption (2000W) is significant. Consider adding UPS 5000W for power backup."
+    ]
+  },
+  "proposal_preview": "# AutoSE Platform Proposal\n*Generated: 2026-05-26 17:44:01*\n\n## Requirements Summary\n\n- **Device Count**: 100 cameras/devices\n- **GPU Required**: Yes\n- **Estimated Power**: 100W\n- **Network Ports**: 1 ports\n\n## Recommended Products\n\n### AI Server X2\n\n- **Power Consumption**: 1500W\n- **GPU Count**: 8\n- **Price**: $28,000\n- **Max Cameras Supported**: 120\n\n### Switch 48P\n\n- **Power Consumption**: 400W\n- **Price**: $1,500\n- **Network Ports**: 48\n\n**Total Estimated Cost**: $29,500\n\n## Validation Resu...",
+  "timestamp": "2026-05-26T17:44:01.678372"
+}

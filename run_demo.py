@@ -60,15 +60,15 @@ async def demo_workflow():
             products = await retriever.match(requirements)
             print(f"   - Found {len(products)} matching products:")
             for product in products:
-                print(f"     • {product.name}")
-                if product.price > 0:
-                    print(f"       Price: ${product.price:,}")
-                if product.max_cameras > 0:
-                    print(f"       Max Cameras: {product.max_cameras}")
-                if product.port_count > 0:
-                    print(f"       Ports: {product.port_count}")
-                if product.capacity_w > 0:
-                    print(f"       Capacity: {product.capacity_w}W")
+                print(f"     • {product.get('name', 'Unknown Product')}")
+                if product.get('price', 0) > 0:
+                    print(f"       Price: ${product.get('price'):,}")
+                if product.get('max_cameras', 0) > 0:
+                    print(f"       Max Cameras: {product.get('max_cameras')}")
+                if product.get('ports', product.get('port_count', 0)) > 0:
+                    print(f"       Ports: {product.get('ports', product.get('port_count', 0))}")
+                if product.get('capacity_w', 0) > 0:
+                    print(f"       Capacity: {product.get('capacity_w')}W")
             
             # Step 3: Validation
             print("\n3. ✅ Validation:")
@@ -88,7 +88,7 @@ async def demo_workflow():
             print("\n4. 📄 Proposal Generation:")
             proposal = await generator.generate(requirements, products, validation)
             
-            total_cost = sum(p.price for p in products)
+            total_cost = sum(p.get('price', 0) for p in products)
             print(f"   - Total Cost: ${total_cost:,}")
             print(f"   - Markdown Length: {len(proposal.markdown):,} chars")
             print(f"   - JSON Structure: {len(proposal.json_data.keys())} sections")
@@ -108,7 +108,7 @@ async def demo_workflow():
                 json.dump({
                     "requirement": example_text,
                     "requirements": requirements.model_dump(),
-                    "products": [p.model_dump() for p in products],
+                    "products": products,  # Already dictionaries
                     "validation": validation.model_dump(),
                     "proposal_preview": proposal.markdown[:500] + "...",
                     "timestamp": datetime.now().isoformat()

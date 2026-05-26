@@ -1,0 +1,26 @@
+{
+  "products": [
+    {"id": "x1", "name": "AI Server X1", "category": "server", "price": 15000, "power_w": 800, "gpu": 4, "max_cameras": 50},
+    {"id": "x2", "name": "AI Server X2", "category": "server", "price": 28000, "power_w": 1500, "gpu": 8, "max_cameras": 120},
+    {"id": "edge", "name": "Edge Node", "category": "server", "price": 4000, "power_w": 150, "gpu": 1, "max_cameras": 10},
+    {"id": "switch48", "name": "Switch 48P", "category": "network", "price": 2000, "power_w": 400, "ports": 48},
+    {"id": "switch24", "name": "Switch 24P", "category": "network", "price": 1200, "power_w": 200, "ports": 24},
+    {"id": "router", "name": "Enterprise Router", "category": "network", "price": 800, "power_w": 50, "ports": 4},
+    {"id": "ups5k", "name": "UPS 5000W", "category": "power", "price": 3000, "capacity_w": 5000},
+    {"id": "ups3k", "name": "UPS 3000W", "category": "power", "price": 1800, "capacity_w": 3000},
+    {"id": "smart_panel", "name": "Smart Control Panel", "category": "smart_home", "price": 500, "power_w": 10},
+    {"id": "light_ctrl", "name": "Smart Light Controller", "category": "smart_home", "price": 120, "power_w": 5},
+    {"id": "smart_plug", "name": "Smart Plug", "category": "smart_home", "price": 30, "power_w": 1},
+    {"id": "motion_sensor", "name": "Motion Sensor", "category": "sensor", "price": 80, "power_w": 2},
+    {"id": "door_sensor", "name": "Door Sensor", "category": "sensor", "price": 40, "power_w": 1},
+    {"id": "temp_sensor", "name": "Temperature Sensor", "category": "sensor", "price": 60, "power_w": 1},
+    {"id": "nvr", "name": "Network Video Recorder", "category": "security", "price": 2000, "power_w": 150, "max_cameras": 64},
+    {"id": "camera_bullet", "name": "Bullet Camera", "category": "security", "price": 300, "power_w": 10},
+    {"id": "nas", "name": "NAS Storage", "category": "storage", "price": 800, "power_w": 60},
+    {"id": "water_leak_sensor", "name": "Water Leak Sensor", "category": "sensor", "price": 45, "power_w": 1, "battery": true, "description": "Detects water presence and leaks"},
+    {"id": "flood_detector", "name": "Flood Detector", "category": "sensor", "price": 89, "power_w": 2, "battery": true, "description": "Advanced flood and water level detection"},
+    {"id": "siren", "name": "Alarm Siren", "category": "security", "price": 79, "power_w": 5, "db": 110, "description": "Loud audible alert"},
+    {"id": "gateway", "name": "IoT Gateway", "category": "network", "price": 150, "power_w": 10, "max_sensors": 50, "description": "Connects sensors to internet and alert system"},
+    {"id": "alert_hub", "name": "Alert Notification Hub", "category": "software", "price": 200, "description": "Sends SMS/email/app alerts"}
+  ]
+}

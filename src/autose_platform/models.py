@@ -5,7 +5,7 @@ This module contains all Pydantic models for the AutoSE Platform.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 
 
@@ -69,7 +69,7 @@ class Proposal(BaseModel):
     markdown: str = Field(..., description="Markdown formatted proposal")
     json_data: Dict[str, Any] = Field(..., description="JSON reasoning structure", alias="json")
     requirements: StructuredRequirements
-    selected_products: List[Product]
+    selected_products: List[Dict[str, Any]] = Field(default_factory=list, description="Selected products as dictionaries")
     validation: ValidationResult
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 

@@ -9,6 +9,7 @@ import json
 import pandas as pd
 from datetime import datetime
 import time
+import uuid
 
 # Page configuration
 st.set_page_config(
@@ -17,6 +18,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Initialize session state variables
+if "current_solution" not in st.session_state:
+    st.session_state.current_solution = None
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
 
 # Custom CSS for better styling
 st.markdown("""
@@ -108,7 +117,7 @@ with st.sidebar:
     }
     
     selected_example = st.selectbox(
-        "Load example:",
+        "Load initial requirement:",
         list(examples.keys())
     )
     
@@ -119,12 +128,75 @@ with st.sidebar:
     
     st.markdown("---")
     
+    # Follow-up questions (only show if we have a current solution)
+    if st.session_state.current_solution:
+        st.markdown("## 🔄 Follow-up & Negotiation")
+        
+        follow_up_examples = {
+            "What's the total budget?": "What's the total budget for this solution?",
+            "Can I reduce the price?": "Can I reduce the price of this solution?",
+            "Show cheaper alternatives": "Show me cheaper alternative options",
+            "What if I remove GPU?": "What if I remove GPU acceleration to save costs?",
+            "Add redundant power": "How much to add redundant power supply?"
+        }
+        
+        selected_follow_up = st.selectbox(
+            "Ask follow-up:",
+            list(follow_up_examples.keys())
+        )
+        
+        if st.button("Ask Follow-up", use_container_width=True):
+            # Store the follow-up text and trigger processing
+            st.session_state.example_text = follow_up_examples[selected_follow_up]
+            st.rerun()
+        
+        st.markdown("### 💬 Negotiation Examples")
+        
+        negotiation_examples = {
+            "This is wrong / not suitable": "This solution is wrong",
+            "Too expensive, budget=3000": "Too expensive, I only have $3000",
+            "Reduce cameras to 20": "Reduce cameras to 20",
+            "Simplify the solution": "Simplify the solution",
+            "Not reasonable for my needs": "This is not reasonable for my needs"
+        }
+        
+        selected_negotiation = st.selectbox(
+            "Try negotiation:",
+            list(negotiation_examples.keys())
+        )
+        
+        if st.button("Start Negotiation", use_container_width=True):
+            # Store the negotiation text and trigger processing
+            st.session_state.example_text = negotiation_examples[selected_negotiation]
+            st.rerun()
+    
+    st.markdown("---")
+    
     # Chat controls
     st.markdown("## 💬 Chat Controls")
     
-    if st.button("Clear Chat History", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Clear Chat History", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.current_solution = None
+            st.rerun()
+    
+    with col2:
+        if st.button("New Session", use_container_width=True):
+            st.session_state.session_id = str(uuid.uuid4())
+            st.session_state.messages = []
+            st.session_state.current_solution = None
+            st.rerun()
+    
+    # Session information
+    st.markdown("### 📝 Session Info")
+    if st.session_state.current_solution:
+        st.success(f"**Active Session:** {st.session_state.session_id[:8]}...")
+        st.caption(f"Conversation memory is active. Ask follow-up questions about budget, modifications, or alternatives.")
+    else:
+        st.info("**New Session:** {st.session_state.session_id[:8]}...")
+        st.caption("Your conversation will be remembered for follow-up questions.")
     
     st.markdown("---")
     
@@ -144,9 +216,7 @@ with st.sidebar:
         st.error("❌ API Not Reachable")
         st.caption("Make sure the backend is running on port 8000")
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# Chat history and session are already initialized at the top
 
 # Check if we have an example text to process
 if hasattr(st.session_state, 'example_text'):
@@ -163,14 +233,146 @@ for message in st.session_state.messages:
         if message["role"] == "user":
             st.markdown(f"**{message['content']}**")
         else:
-            # For assistant messages, we have structured data
+            # Check if this is a no-exact-match response
+            is_no_exact_match = message.get("content", {}).get("no_exact_match", False)
+            is_follow_up = message.get("is_follow_up", False)
+            is_negotiation = message.get("is_negotiation", False)
+            
+            if is_no_exact_match:
+                # Display no-exact-match response
+                result = message["content"]
+                
+                st.warning("⚠️ **No Exact Match Found**")
+                
+                # Show the message
+                if "message" in result:
+                    st.markdown(result["message"])
+                
+                # Show options
+                options = result.get("options", [])
+                if options:
+                    st.markdown("**Options:**")
+                    for option in options:
+                        if isinstance(option, dict):
+                            st.markdown(f"- {option.get('description', '')}")
+                        else:
+                            st.markdown(f"- {option}")
+                
+                # Don't show full solution
+                continue
+            
+            if is_follow_up:
+                # Display follow-up response
+                result = message["content"]
+                follow_up = result.get("follow_up_response", {})
+                
+                if follow_up:
+                    st.markdown(f"**{follow_up.get('type', 'Follow-up').replace('_', ' ').title()}**")
+                    st.markdown(follow_up.get("message", ""))
+                    
+                    # Show budget info if available
+                    if follow_up.get("type") == "budget_info":
+                        total_cost = follow_up.get("total_cost", 0)
+                        st.metric("Total Cost", f"${total_cost:,}")
+                
+                # Don't show full solution for follow-ups
+                continue
+            
+            # Check if this is a negotiation response
+            if is_negotiation:
+                result = message["content"]
+                
+                # Display negotiation response
+                st.info("💬 **Negotiation Response**")
+                
+                # Show the formatted message
+                if "message" in result:
+                    st.markdown(result["message"])
+                
+                # Show clarifying questions
+                clarifying_questions = result.get("clarifying_questions", [])
+                if clarifying_questions:
+                    with st.expander("📝 **Clarifying Questions**", expanded=True):
+                        for i, question in enumerate(clarifying_questions):
+                            st.markdown(f"{i+1}. {question}")
+                
+                # Show current solution summary
+                current_summary = result.get("current_solution_summary", {})
+                if current_summary:
+                    with st.expander("📊 **Current Solution Summary**", expanded=False):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Total Cost", f"${current_summary.get('total_cost', 0):,}")
+                            st.metric("Device Count", current_summary.get('device_count', 0))
+                        with col2:
+                            st.metric("Product Count", current_summary.get('product_count', 0))
+                        
+                        # Show most expensive items
+                        expensive_items = current_summary.get("most_expensive_items", [])
+                        if expensive_items:
+                            st.markdown("**Most Expensive Items:**")
+                            for item in expensive_items:
+                                st.markdown(f"- {item.get('name')}: ${item.get('price', 0):,} ({item.get('category')})")
+                
+                # Show alternative options
+                alternative_options = result.get("alternative_options", {})
+                if alternative_options:
+                    with st.expander("🔄 **Alternative Options**", expanded=False):
+                        for alt_type, summary in alternative_options.items():
+                            if summary.get("total_cost", 0) > 0:
+                                alt_type_display = alt_type.capitalize()
+                                st.markdown(f"### {alt_type_display} Option")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.metric("Total Cost", f"${summary.get('total_cost', 0):,}")
+                                with col2:
+                                    st.metric("Product Count", summary.get('product_count', 0))
+                                
+                                # Show key products
+                                products = summary.get("products", [])
+                                if products:
+                                    st.markdown("**Key Products:**")
+                                    for product in products[:3]:
+                                        st.markdown(f"- {product.get('name')}: ${product.get('price', 0):,}")
+                
+                # Show recommended action
+                recommended_action = result.get("recommended_action", "")
+                if recommended_action:
+                    st.success(f"**Recommended:** {recommended_action}")
+                
+                # Don't show full solution for negotiations
+                continue
+            
+            # For regular assistant messages, we have structured data
             if isinstance(message["content"], dict):
                 # Display the structured response
                 result = message["content"]
                 
                 # Show success status
                 if result.get("success", False):
-                    st.success("✅ Solution designed successfully!")
+                    if result.get("intelligent_analysis", False):
+                        st.success("✅ Intelligent analysis completed successfully!")
+                    else:
+                        st.success("✅ Solution designed successfully!")
+                
+                # Display intelligent analysis if available
+                if result.get("intelligent_analysis", False):
+                    analysis = result.get("analysis", {})
+                    if analysis:
+                        st.markdown("### 🧠 Intelligent Analysis")
+                        st.markdown(f"**Goal:** {analysis.get('goal', '')}")
+                        
+                        # Show core products
+                        core_products = analysis.get("core_products", [])
+                        if core_products:
+                            st.markdown(f"**Core Products:** {', '.join(core_products)}")
+                        
+                        # Show reasoning
+                        reasoning = analysis.get("reasoning", "")
+                        if reasoning:
+                            with st.expander("📝 **Reasoning**", expanded=False):
+                                st.markdown(reasoning)
                 
                 # Display requirements summary
                 if "requirements" in result:
@@ -185,7 +387,30 @@ for message in st.session_state.messages:
                         st.metric("Network Ports", req.get("network_ports", "N/A"))
                 
                 # Display products table
-                if "products" in result and result["products"]:
+                if "selected_products" in result and result["selected_products"]:
+                    st.markdown("### 🛒 Recommended Products")
+                    
+                    # Create products table
+                    products_data = []
+                    for product in result["selected_products"]:
+                        products_data.append({
+                            "Product": product.get("name", "Unknown"),
+                            "Category": product.get("category", ""),
+                            "Price ($)": f"${product.get('price', 0):,}",
+                            "Power (W)": product.get("power_w", 0) or "N/A",
+                            "Description": product.get("description", "")[:50] + "..." if product.get("description") else "N/A"
+                        })
+                    
+                    if products_data:
+                        df = pd.DataFrame(products_data)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                        
+                        # Calculate total cost
+                        total_cost = result.get("total_cost", 0) or sum(product.get("price", 0) for product in result["selected_products"])
+                        st.markdown(f"**Total Estimated Cost: ${total_cost:,}**")
+                
+                # Also check for "products" key for backward compatibility
+                elif "products" in result and result["products"]:
                     st.markdown("### 🛒 Recommended Products")
                     
                     # Create products table
@@ -208,6 +433,16 @@ for message in st.session_state.messages:
                         # Calculate total cost
                         total_cost = sum(product.get("price", 0) for product in result["products"])
                         st.markdown(f"**Total Estimated Cost: ${total_cost:,}**")
+                
+                # Display explanations if available
+                if "explanations" in result and result["explanations"]:
+                    st.markdown("### 📝 Product Explanations")
+                    for explanation in result["explanations"]:
+                        if isinstance(explanation, dict):
+                            with st.expander(f"**{explanation.get('product_name', 'Product')} (${explanation.get('product_price', 0):,})**", expanded=False):
+                                st.markdown(explanation.get("explanation", ""))
+                        else:
+                            st.markdown(f"- {explanation}")
                 
                 # Display validation results
                 if "validation" in result:
@@ -303,10 +538,15 @@ if prompt:
                 time.sleep(0.3)  # Simulate processing time
             
             try:
-                # Call the AutoSE API
+                # Call the AutoSE API with session_id
+                request_data = {"text": prompt}
+                if st.session_state.session_id:
+                    request_data["session_id"] = st.session_state.session_id
+                
+                # Use intelligent analysis endpoint for all requests
                 response = requests.post(
-                    f"{api_endpoint}/api/analyze",
-                    json={"text": prompt},
+                    f"{api_endpoint}/api/analyze_intelligently",
+                    json=request_data,
                     timeout=30
                 )
                 
@@ -317,8 +557,64 @@ if prompt:
                     progress_bar.empty()
                     status_text.empty()
                     
-                    # Display success message
-                    st.success("✅ Solution designed successfully!")
+                    # Store session_id if provided
+                    if "session_id" in result:
+                        st.session_state.session_id = result["session_id"]
+                    
+                    # Check if this is a no-exact-match response
+                    if result.get("no_exact_match", False):
+                        st.warning("⚠️ No exact match found")
+                        
+                        # Display no-match response
+                        no_match_response = result.get("no_match_response", {})
+                        if no_match_response:
+                            st.markdown(f"**{no_match_response.get('message', '')}**")
+                            
+                            # Show options
+                            options = no_match_response.get("options", [])
+                            if options:
+                                st.markdown("**Options:**")
+                                for option in options:
+                                    if isinstance(option, dict):
+                                        st.markdown(f"- {option.get('description', '')}")
+                                    else:
+                                        st.markdown(f"- {option}")
+                    
+                    # Check if this is a negotiation response
+                    elif result.get("is_negotiation", False):
+                        st.info("💬 Processing negotiation...")
+                        
+                        # Store current solution for follow-up questions
+                        if "current_solution_summary" in result:
+                            st.session_state.current_solution = result
+                    
+                    # Check if this is a follow-up response
+                    elif result.get("is_follow_up", False):
+                        st.info("🔍 Processing follow-up question...")
+                        
+                        # Display follow-up response
+                        follow_up = result.get("follow_up_response", {})
+                        if follow_up:
+                            st.markdown(f"**{follow_up.get('type', 'Follow-up').replace('_', ' ').title()}**")
+                            st.markdown(follow_up.get("message", ""))
+                            
+                            # Show budget info if available
+                            if follow_up.get("type") == "budget_info":
+                                total_cost = follow_up.get("total_cost", 0)
+                                st.metric("Total Cost", f"${total_cost:,}")
+                    
+                    else:
+                        # Store current solution for follow-up questions
+                        st.session_state.current_solution = result
+                        
+                        # Check for alert system questions
+                        if result.get("has_alert_questions", False):
+                            st.info("🔔 Alert system configuration needed")
+                            alert_questions = result.get("alert_system_questions", [])
+                            for question in alert_questions:
+                                st.markdown(f"• {question}")
+                        
+                        st.success("✅ Intelligent analysis completed successfully!")
                     
                     # Display the structured response (handled in the chat history display)
                     # The actual display will happen when the message is rendered in the history
@@ -327,7 +623,9 @@ if prompt:
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": result,
-                        "timestamp": datetime.now().strftime("%H:%M:%S")
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
+                        "is_follow_up": result.get("is_follow_up", False),
+                        "is_negotiation": result.get("is_negotiation", False)
                     })
                     
                     # Rerun to update the display

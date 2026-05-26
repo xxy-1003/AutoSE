@@ -4,8 +4,8 @@ Validation Layer for AutoSE Platform.
 This module implements deterministic validation of product compatibility.
 """
 
-from typing import List
-from .models import Product, StructuredRequirements, ValidationResult
+from typing import List, Dict, Any
+from .models import StructuredRequirements, ValidationResult
 from .config import settings
 
 
@@ -16,13 +16,13 @@ class ValidationLayer:
         """Initialize the validation layer with configuration."""
         self.power_threshold = settings.POWER_THRESHOLD_W
     
-    async def validate(self, products: List[Product], 
+    async def validate(self, products: List[Dict[str, Any]], 
                       requirements: StructuredRequirements) -> ValidationResult:
         """
         Validate product compatibility with requirements.
         
         Args:
-            products: List of selected products
+            products: List of selected products as dictionaries
             requirements: Structured requirements
             
         Returns:
@@ -47,53 +47,60 @@ class ValidationLayer:
         
         return validation
     
-    def _validate_power(self, products: List[Product], 
+    def _validate_power(self, products: List[Dict[str, Any]], 
                        requirements: StructuredRequirements,
                        validation: ValidationResult):
         """Validate power requirements."""
         # Calculate total power consumption
         total_power = 0
         for product in products:
-            total_power += product.power_w
+            total_power += product.get("power_w", 0)
         
         # Add estimated power from requirements
         total_power += requirements.estimated_power_w
         
+        # Check if we have UPS capacity
+        ups_capacity = 0
+        for product in products:
+            if product.get("category") == "power":
+                ups_capacity += product.get("capacity_w", 0)
+        
+        # If no UPS, use default threshold
+        effective_threshold = ups_capacity if ups_capacity > 0 else self.power_threshold
+        
         # Check against threshold
-        if total_power > self.power_threshold:
+        if total_power > effective_threshold:
             validation.power_check = "FAIL"
             validation.power_warning = (
                 f"Total power consumption ({total_power}W) exceeds "
-                f"UPS capacity ({self.power_threshold}W). "
+                f"available capacity ({effective_threshold}W). "
                 f"Consider adding additional UPS units or reducing power requirements."
             )
             validation.warnings.append(validation.power_warning)
-        elif total_power > self.power_threshold * 0.8:  # 80% of capacity
+        elif total_power > effective_threshold * 0.8:  # 80% of capacity
             validation.power_check = "WARNING"
             validation.power_warning = (
                 f"Total power consumption ({total_power}W) is close to "
-                f"UPS capacity ({self.power_threshold}W). "
-                f"Consider adding a second UPS for redundancy."
+                f"available capacity ({effective_threshold}W). "
+                f"Consider adding additional power backup for redundancy."
             )
             validation.warnings.append(validation.power_warning)
         
-        # Check if UPS is included for significant power
-        if total_power > 1000:
-            has_ups = any(p.name == "UPS 5000W" for p in products)
-            if not has_ups:
-                validation.warnings.append(
-                    f"Power consumption ({total_power}W) is significant. "
-                    f"Consider adding UPS 5000W for power backup."
-                )
+        # Check if power backup is included for significant power
+        if total_power > 1000 and ups_capacity == 0:
+            validation.warnings.append(
+                f"Power consumption ({total_power}W) is significant. "
+                f"Consider adding UPS for power backup."
+            )
     
-    def _validate_network(self, products: List[Product],
+    def _validate_network(self, products: List[Dict[str, Any]],
                          requirements: StructuredRequirements,
                          validation: ValidationResult):
         """Validate network requirements."""
         # Calculate total available ports
         total_ports = 0
         for product in products:
-            total_ports += product.port_count
+            total_ports += product.get("ports", 0)
         
         # Check if ports meet requirements
         if requirements.network_ports > 0 and total_ports < requirements.network_ports:
@@ -101,7 +108,7 @@ class ValidationLayer:
             validation.warnings.append(
                 f"Insufficient network ports: {total_ports} available, "
                 f"{requirements.network_ports} required. "
-                f"Consider adding additional switches."
+                f"Consider adding additional network equipment."
             )
         elif requirements.network_ports > 0 and total_ports == requirements.network_ports:
             validation.network_check = "WARNING"
@@ -110,57 +117,71 @@ class ValidationLayer:
                 f"No spare ports for expansion. Consider adding extra capacity."
             )
         
-        # Check if switch is included for network requirements
+        # Check if network equipment is included for network requirements
         if requirements.network_ports > 0:
-            has_switch = any(p.name == "Switch 48P" for p in products)
-            if not has_switch:
+            has_network_equipment = any(p.get("category") == "network" for p in products)
+            if not has_network_equipment:
                 validation.warnings.append(
                     f"Network ports required ({requirements.network_ports}), "
-                    f"but no switch included. Consider adding Switch 48P."
+                    f"but no network equipment included. Consider adding switches or routers."
                 )
     
-    def _validate_gpu(self, products: List[Product],
+    def _validate_gpu(self, products: List[Dict[str, Any]],
                      requirements: StructuredRequirements,
                      validation: ValidationResult):
         """Validate GPU requirements."""
         # Calculate total GPUs
         total_gpus = 0
         for product in products:
-            total_gpus += product.gpu_count
+            total_gpus += product.get("gpu", 0)
         
         # Check GPU requirements
         if requirements.gpu_required and total_gpus == 0:
             validation.gpu_check = "FAIL"
             validation.warnings.append(
                 "GPU acceleration required but no GPU-enabled products selected. "
-                "Consider adding AI Server X1, AI Server X2, or Edge Node."
+                "Consider adding server products with GPU support."
             )
         elif requirements.gpu_required and total_gpus < requirements.device_count / 50:
             # Rough heuristic: 1 GPU per 50 cameras for AI processing
             validation.gpu_check = "WARNING"
             validation.warnings.append(
                 f"GPU count ({total_gpus}) may be insufficient for "
-                f"{requirements.device_count} cameras. "
+                f"{requirements.device_count} devices. "
                 f"Consider adding more GPU-enabled products."
             )
         
-        # Check if GPU products are appropriate for camera count
+        # Check if products are appropriate for device count
         for product in products:
-            if product.gpu_count > 0:
+            category = product.get("category", "")
+            name = product.get("name", "")
+            
+            if category == "server":
+                max_cameras = product.get("max_cameras", 0)
+                
                 # Edge Node is only suitable for small deployments
-                if product.name == "Edge Node" and requirements.device_count > 20:
+                if name == "Edge Node" and requirements.device_count > 20:
                     validation.warnings.append(
-                        f"Edge Node (max {product.max_cameras} cameras) may be "
-                        f"insufficient for {requirements.device_count} cameras. "
-                        f"Consider upgrading to AI Server X1 or X2."
+                        f"Edge Node (max {max_cameras} cameras) may be "
+                        f"insufficient for {requirements.device_count} devices. "
+                        f"Consider upgrading to more powerful server."
                     )
                 
                 # Check if product can support camera count
-                if not product.can_support_cameras(requirements.device_count):
+                if max_cameras > 0 and max_cameras < requirements.device_count:
                     validation.warnings.append(
-                        f"{product.name} (max {product.max_cameras} cameras) "
-                        f"cannot support {requirements.device_count} cameras. "
+                        f"{name} (max {max_cameras} cameras) "
+                        f"cannot support {requirements.device_count} devices. "
                         f"Consider alternative products."
+                    )
+            
+            elif category == "security":
+                max_cameras = product.get("max_cameras", 0)
+                if max_cameras > 0 and max_cameras < requirements.device_count:
+                    validation.warnings.append(
+                        f"{name} (max {max_cameras} cameras) "
+                        f"cannot support {requirements.device_count} devices. "
+                        f"Consider alternative security products."
                     )
     
     def is_valid(self, validation: ValidationResult) -> bool:

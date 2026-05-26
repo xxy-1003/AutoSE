@@ -48,19 +48,19 @@ async def test_product_retriever(requirements):
     print(f"✓ Found {len(products)} matching products:")
     
     for product in products:
-        print(f"  - {product.name}:")
-        if product.power_w > 0:
-            print(f"    Power: {product.power_w}W")
-        if product.gpu_count > 0:
-            print(f"    GPUs: {product.gpu_count}")
-        if product.price > 0:
-            print(f"    Price: ${product.price:,}")
-        if product.max_cameras > 0:
-            print(f"    Max Cameras: {product.max_cameras}")
-        if product.port_count > 0:
-            print(f"    Ports: {product.port_count}")
-        if product.capacity_w > 0:
-            print(f"    Capacity: {product.capacity_w}W")
+        print(f"  - {product.get('name', 'Unknown Product')}:")
+        if product.get('power_w', 0) > 0:
+            print(f"    Power: {product.get('power_w')}W")
+        if product.get('gpu', product.get('gpu_count', 0)) > 0:
+            print(f"    GPUs: {product.get('gpu', product.get('gpu_count', 0))}")
+        if product.get('price', 0) > 0:
+            print(f"    Price: ${product.get('price'):,}")
+        if product.get('max_cameras', 0) > 0:
+            print(f"    Max Cameras: {product.get('max_cameras')}")
+        if product.get('ports', product.get('port_count', 0)) > 0:
+            print(f"    Ports: {product.get('ports', product.get('port_count', 0))}")
+        if product.get('capacity_w', 0) > 0:
+            print(f"    Capacity: {product.get('capacity_w')}W")
     
     return products
 
@@ -129,7 +129,7 @@ async def test_full_pipeline():
     print("=" * 60)
     
     # Summary
-    total_cost = sum(p.price for p in products)
+    total_cost = sum(p.get('price', 0) for p in products)
     print(f"\n📊 Summary:")
     print(f"  - Requirements: {requirements.device_count} cameras, "
           f"{'GPU' if requirements.gpu_required else 'No GPU'}")
@@ -140,7 +140,7 @@ async def test_full_pipeline():
     
     return {
         "requirements": requirements.model_dump(),
-        "products": [p.model_dump() for p in products],
+        "products": products,  # Already dictionaries
         "validation": validation.model_dump(),
         "proposal": {
             "markdown_preview": proposal.markdown[:200],
@@ -157,11 +157,11 @@ def test_catalog():
     
     print(f"✓ Catalog contains {len(catalog)} products:")
     for product in catalog:
-        print(f"  - {product.name}")
+        print(f"  - {product.get('name', 'Unknown Product')}")
     
     # Verify all required products are present
     required_products = ["AI Server X1", "AI Server X2", "Edge Node", "UPS 5000W", "Switch 48P"]
-    catalog_names = [p.name for p in catalog]
+    catalog_names = [p.get('name', '') for p in catalog]
     
     missing = [p for p in required_products if p not in catalog_names]
     if missing:
